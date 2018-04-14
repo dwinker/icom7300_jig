@@ -8,6 +8,7 @@
 #include <sys/ioctl.h>
 #include <pthread.h>
 #include <assert.h>
+#include <chrono>
 #include "serial.h"
 #include "ic7300.h"
 
@@ -18,6 +19,8 @@ static int            f_fd = 0;
 static struct termios f_tio_orig;
 
 static pthread_t listen_thread;
+
+using namespace std::chrono;
 
 // Getting this working with CANON mode. Maybe switch to timed reads later if
 // there are problems with CANON mode.
@@ -40,6 +43,23 @@ static pthread_t listen_thread;
     #define RECEIVE_BUFFER_SIZE 1024
     static bool f_done = false;
 #endif
+
+void tmstamp(char *buffer, size_t buffer_size)
+{
+    system_clock::time_point now;
+	system_clock::duration   dtn;
+    time_t                   now_c;
+	int                      ms;
+    int                      position;
+
+    now = system_clock::now();
+	dtn = now.time_since_epoch();
+	ms = (dtn.count() % system_clock::period::den) / 100000;
+    now_c = system_clock::to_time_t(now);
+
+	position = strftime(buffer, buffer_size - 6, "%T", localtime(&now_c));
+    snprintf(buffer + position, buffer_size - position, ".%04d", ms);
+}
 
 int serial_init(const char *devStr)
 {
@@ -321,7 +341,14 @@ static void serial_port_init(struct termios *ptio)
 
 int serial_send(const unsigned char *buf, int n)
 {
+    char ts_buf[15];
     int nsent;
+
+    tmstamp(ts_buf, sizeof(ts_buf));
+    printf("\n%s: send:", ts_buf);
+    for(nsent = 0; nsent < n; nsent++)
+        printf(" %02X", buf[nsent]);
+
     assert(f_fd);
     nsent = write(f_fd, buf, n);
     if(nsent != n) {
@@ -338,6 +365,7 @@ static void *serial_listen_thread_loop(void *pfd)
         // an exception.
         int n, nread;
         unsigned char buf[RECEIVE_BUFFER_SIZE];
+        char ts_buf[15];
 
         while(true) {
             nread = 0;
@@ -346,10 +374,10 @@ static void *serial_listen_thread_loop(void *pfd)
             } while(END_MESSAGE != buf[nread - 1] && nread < (RECEIVE_BUFFER_SIZE - 1));
 
             if(END_MESSAGE == buf[nread - 1]) {
-                printf("\nrecv:");
+                tmstamp(ts_buf, sizeof(ts_buf));
+                printf("\n\n%s: recv:", ts_buf);
                 for(n = 0; n < nread; n++)
                     printf(" %02X", buf[n]);
-                putchar('\n');
                 (void)process_cmd_from_controller(buf, nread);
             } else {
                 printf("serial_listen_thread_loop: no end message. Read %d bytes:", nread);

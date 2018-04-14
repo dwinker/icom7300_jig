@@ -204,7 +204,6 @@ static void process_other_cmd_from_controller(const unsigned char *buf, int leng
     const cmd_resp_t *cr;
     size_t i, j;
     unsigned char xbuf[10];
-    int nsent;
     int n;
 
     // Nothing to do if no sub command.
@@ -218,11 +217,6 @@ static void process_other_cmd_from_controller(const unsigned char *buf, int leng
         puts("process_other_cmd_from_controller: Missing END_MESSAGE.");
         return;
     }
-
-    printf("process_other_cmd_from_controller: length=%d, ", length);
-    for(int n = 0; n < length; n++)
-        printf(" %02X", buf[n]);
-    putchar('\n');
 
     for(i = 0; i < sizeof(cmd_resp_list) / sizeof(cmd_resp_list[0]); i++) {
 
@@ -251,12 +245,7 @@ static void process_other_cmd_from_controller(const unsigned char *buf, int leng
 
             xbuf[n++] = END_MESSAGE;
 
-            nsent = serial_send(xbuf, n);
-
-            printf("process_other_cmd_from_controller: sent %d of %d bytes.\nsend:", nsent, n);
-            for(n = 0; n < nsent; n++)
-                printf(" %02X", xbuf[n]);
-            putchar('\n');
+            (void)serial_send(xbuf, n);
 
             break;
         }
