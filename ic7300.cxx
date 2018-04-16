@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <assert.h>
 #include "ic7300.h"
 #include "serial.h"
@@ -38,45 +39,86 @@ typedef struct cmd_resp_tag {
     unsigned char resp_len;
 } cmd_resp_t;
 
+enum COMMANDS {
+    OPERATING_FREQ_GET,
+    OPERATING_FREQ_SET,
+    SELECT_VFO,
+    SPLIT_GET,
+    SPLIT_SET,
+    ATT_SET,
+    ATT_GET,
+    AF_RF_SET,
+    AF_LEVEL_GET,
+    RF_GAIN_GET,
+    SQUELCH_LEVEL_GET,
+    NR_LEVEL_GET,
+    RF_PWR_GET,
+    MIC_GET,
+    NOTCH_POS_GET,
+    COMP_LEVEL_GET,
+    NB_LEVEL_GET,
+    S_METER_GET,
+    PREAMP_GET,
+    AGC_GET,
+    NB_GET,
+    NR_GET,
+    AUTO_NOTCH_GET,
+    COMP_GET,
+    NOTCH_GET,
+    AF_RF_2_SET,
+    MEM_SET,
+    FILTER_WIDTH_GET,
+    REF_FREQ_GET,
+    REF_FREQ_SET,
+    STATUS_RX_GET,
+    STATUS_RX_TX_SET,
+    VFO_SET,
+    VFO_GET,
+};
+
 // Note, 0x1C 0x01 0x?? is intentionally left out of this list so that by
 // clicking "Tune" on flrig we can cause an OK timeout. "PTT" on or off is
-// intentionally answered with BAD.
+// intentionally answered with NG (No Good).
 static const cmd_resp_t cmd_resp_list[] = {
-    {{0x03                  }, 1, 1, {0x03, 0x00, 0x60, 0x14, 0x07, 0x00}, 6},
-    {{0x05, 0x00            }, 2, 6, {0xFB                              }, 1},
-    {{0x07                  }, 1, 2, {0xFB                              }, 1},
-    {{0x0F                  }, 1, 1, {0x0F, 0x00                        }, 2},
-    {{0x0F                  }, 1, 2, {0xFB                              }, 1},
-    {{0x11                  }, 1, 2, {0xFB                              }, 1},
-    {{0x11                  }, 1, 1, {0x11, 0x00                        }, 2},
-    {{0x14                  }, 1, 4, {0xFB                              }, 1},
-    {{0x14, 0x01            }, 2, 2, {0x14, 0x01, 0x00, 0x20            }, 4},
-    {{0x14, 0x02            }, 2, 2, {0x14, 0x02, 0x00, 0x39            }, 4},
-    {{0x14, 0x03            }, 2, 2, {0x14, 0x03, 0x00, 0x26            }, 4},
-    {{0x14, 0x06            }, 2, 2, {0x14, 0x06, 0x00, 0x08            }, 4},
-    {{0x14, 0x0A            }, 2, 2, {0x14, 0x0A, 0x00, 0x20            }, 4},
-    {{0x14, 0x0B            }, 2, 2, {0x14, 0x0B, 0x00, 0x00            }, 4},
-    {{0x14, 0x0D            }, 2, 2, {0x14, 0x0D, 0x01, 0x00            }, 4},
-    {{0x14, 0x0E            }, 2, 2, {0x14, 0x0E, 0x00, 0x11            }, 4},
-    {{0x14, 0x12            }, 2, 2, {0x14, 0x12, 0x01, 0x28            }, 4},
-    {{0x15, 0x02            }, 2, 2, {0x15, 0x02, 0x00, 0x00            }, 4},
-    {{0x16, 0x02            }, 2, 2, {0x16, 0x02, 0x00                  }, 3},
-    {{0x16, 0x12            }, 2, 2, {0x16, 0x12, 0x02                  }, 3},
-    {{0x16, 0x22            }, 2, 2, {0x16, 0x22, 0x00                  }, 3},
-    {{0x16, 0x40            }, 2, 2, {0x16, 0x40, 0x00                  }, 3},
-    {{0x16, 0x41            }, 2, 2, {0x16, 0x41, 0x00                  }, 3},
-    {{0x16, 0x44            }, 2, 2, {0x16, 0x44, 0x00                  }, 3},
-    {{0x16, 0x48            }, 2, 2, {0x16, 0x48, 0x00                  }, 3},
-    {{0x16                  }, 1, 3, {0xFB                              }, 1},
-    {{0x1A                  }, 1, 3, {0xFB                              }, 1},
-    {{0x1A, 0x03            }, 2, 2, {0x1A, 0x03, 0x28                  }, 3},
-    {{0x1A, 0x05, 0x00, 0x58}, 4, 4, {0x1A, 0x05, 0x00, 0x58, 0x00, 0x73}, 6},
-    {{0x1A, 0x05            }, 2, 5, {0xFB                              }, 1},
-    {{0x1C, 0x00            }, 2, 2, {0x1C, 0x00, 0x00                  }, 3},
-    {{0x1C, 0x00            }, 2, 3, {0xFA                              }, 1},
-    {{0x26, 0x00            }, 2, 5, {0xFB                              }, 1},  // Answer PTT on or off with BAD.
-    {{0x26, 0x00            }, 2, 2, {0x26, 0x00, 0x00, 0x00, 0x01      }, 5},
+    {{0x03                  }, 1, 1, {0x03, 0x00, 0x60, 0x14, 0x07, 0x00}, 6},  // OPERATING_FREQ_GET
+    {{0x05, 0x00            }, 2, 6, {0xFB                              }, 1},  // OPERATING_FREQ_SET
+    {{0x07                  }, 1, 2, {0xFB                              }, 1},  // SELECT_VFO
+    {{0x0F                  }, 1, 1, {0x0F, 0x00                        }, 2},  // SPLIT_GET
+    {{0x0F                  }, 1, 2, {0xFB                              }, 1},  // SPLIT_SET
+    {{0x11                  }, 1, 2, {0xFB                              }, 1},  // ATT_SET
+    {{0x11                  }, 1, 1, {0x11, 0x00                        }, 2},  // ATT_GET
+    {{0x14                  }, 1, 4, {0xFB                              }, 1},  // AF_RF_SET
+    {{0x14, 0x01            }, 2, 2, {0x14, 0x01, 0x00, 0x20            }, 4},  // AF_LEVEL_GET
+    {{0x14, 0x02            }, 2, 2, {0x14, 0x02, 0x00, 0x39            }, 4},  // RF_GAIN_GET
+    {{0x14, 0x03            }, 2, 2, {0x14, 0x03, 0x00, 0x26            }, 4},  // SQUELCH_LEVEL_GET
+    {{0x14, 0x06            }, 2, 2, {0x14, 0x06, 0x00, 0x08            }, 4},  // NR_LEVEL_GET
+    {{0x14, 0x0A            }, 2, 2, {0x14, 0x0A, 0x00, 0x20            }, 4},  // RF_PWR_GET
+    {{0x14, 0x0B            }, 2, 2, {0x14, 0x0B, 0x00, 0x00            }, 4},  // MIC_GET
+    {{0x14, 0x0D            }, 2, 2, {0x14, 0x0D, 0x01, 0x00            }, 4},  // NOTCH_POS_GET
+    {{0x14, 0x0E            }, 2, 2, {0x14, 0x0E, 0x00, 0x11            }, 4},  // COMP_LEVEL_GET
+    {{0x14, 0x12            }, 2, 2, {0x14, 0x12, 0x01, 0x28            }, 4},  // NB_LEVEL_GET
+    {{0x15, 0x02            }, 2, 2, {0x15, 0x02, 0x00, 0x00            }, 4},  // S_METER_GET
+    {{0x16, 0x02            }, 2, 2, {0x16, 0x02, 0x00                  }, 3},  // PREAMP_GET
+    {{0x16, 0x12            }, 2, 2, {0x16, 0x12, 0x02                  }, 3},  // AGC_GET
+    {{0x16, 0x22            }, 2, 2, {0x16, 0x22, 0x00                  }, 3},  // NB_GET
+    {{0x16, 0x40            }, 2, 2, {0x16, 0x40, 0x00                  }, 3},  // NR_GET
+    {{0x16, 0x41            }, 2, 2, {0x16, 0x41, 0x00                  }, 3},  // AUTO_NOTCH_GET
+    {{0x16, 0x44            }, 2, 2, {0x16, 0x44, 0x00                  }, 3},  // COMP_GET
+    {{0x16, 0x48            }, 2, 2, {0x16, 0x48, 0x00                  }, 3},  // NOTCH_GET
+    {{0x16                  }, 1, 3, {0xFB                              }, 1},  // AF_RF_2_SET
+    {{0x1A                  }, 1, 3, {0xFB                              }, 1},  // MEM_SET
+    {{0x1A, 0x03            }, 2, 2, {0x1A, 0x03, 0x28                  }, 3},  // FILTER_WIDTH_GET
+    {{0x1A, 0x05, 0x00, 0x58}, 4, 4, {0x1A, 0x05, 0x00, 0x58, 0x00, 0x73}, 6},  // REF_FREQ_GET
+    {{0x1A, 0x05            }, 2, 5, {0xFB                              }, 1},  // REF_FREQ_SET
+    {{0x1C, 0x00            }, 2, 2, {0x1C, 0x00, 0x00                  }, 3},  // STATUS_RX_GET
+    {{0x1C, 0x00            }, 2, 3, {0xFA                              }, 1},  // STATUS_RX_TX_SET - Answer with 0xFA which is NG (No Good)
+    {{0x26, 0x00            }, 2, 5, {0xFB                              }, 1},  // VFO_SET
+    {{0x26, 0x00            }, 2, 2, {0x26, 0x00, 0x00, 0x00, 0x01      }, 5},  // VFO_GET
 };
+
+// Probability that a particular byte will be dropped from ic7300jig.cxx.
+// This will be set to a number between -1 and RAND_MAX inclusive.
+long int g_p_drop_byte = 0;
 
 int process_cmd_from_controller(const unsigned char *buf, int nread)
 {
@@ -240,15 +282,15 @@ static void process_other_cmd_from_controller(const unsigned char *buf, int leng
         if(length == cr->cmd_len && 0 == memcmp(cr->cmd, buf, cr->compare_len)) {
             // Match
             n = 0;
-            xbuf[n++] = PREAMBLE;
-            xbuf[n++] = PREAMBLE;
-            xbuf[n++] = CONT_ADDR;
-            xbuf[n++] = XCVR_ADDR;
+            if(random() > g_p_drop_byte) xbuf[n++] = PREAMBLE;
+            if(random() > g_p_drop_byte) xbuf[n++] = PREAMBLE;
+            if(random() > g_p_drop_byte) xbuf[n++] = CONT_ADDR;
+            if(random() > g_p_drop_byte) xbuf[n++] = XCVR_ADDR;
 
             for(j = 0; j < cr->resp_len; j++)
-                xbuf[n++] = cr->resp[j];
+                if(random() <= g_p_drop_byte) xbuf[n++] = cr->resp[j];
 
-            xbuf[n++] = END_MESSAGE;
+            if(random() <= g_p_drop_byte) xbuf[n++] = END_MESSAGE;
 
             (void)serial_send(xbuf, n);
 

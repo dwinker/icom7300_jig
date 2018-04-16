@@ -55,6 +55,10 @@ struct scope_waveform_data_tag {
 };
 #pragma pack(pop)
 
+// Probability that a particular byte will be dropped from ic7300jig.cxx.
+// This will be set to a number between -1 and RAND_MAX inclusive.
+extern long int g_p_drop_byte;
+
 int process_cmd_from_controller(const unsigned char *buf, int nread);
 
 #endif // IC7300_H
