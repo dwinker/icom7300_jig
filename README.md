@@ -17,3 +17,17 @@ null modem:
 
 The command/response lookup is in ic7300.cxx. Reference IC-7300_ENG_CD_0.pdf,
 section "CONTROL COMMAND".
+
+Used for testing changes to flrig, particularily in rigs/ICbase.cxx.
+Want to test the following. Timeouts tested for correct values too.
+* Working messages
+* Working messages that hesitate for almost a timeout period
+* OK timeout that fails
+* OK timeout that recovers
+* Message timeout that fails
+* Message timeout that recovers
+
+0x1C 0x01 0x?? is intentionally not answered so that by clicking "Tune" on
+flrig we can cause an OK timeout.
+
+"PTT" on or off is intentionally answered with BAD.

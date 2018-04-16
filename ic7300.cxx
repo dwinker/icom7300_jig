@@ -38,13 +38,16 @@ typedef struct cmd_resp_tag {
     unsigned char resp_len;
 } cmd_resp_t;
 
+// Note, 0x1C 0x01 0x?? is intentionally left out of this list so that by
+// clicking "Tune" on flrig we can cause an OK timeout. "PTT" on or off is
+// intentionally answered with BAD.
 static const cmd_resp_t cmd_resp_list[] = {
     {{0x03                  }, 1, 1, {0x03, 0x00, 0x60, 0x14, 0x07, 0x00}, 6},
     {{0x05, 0x00            }, 2, 6, {0xFB                              }, 1},
     {{0x07                  }, 1, 2, {0xFB                              }, 1},
     {{0x0F                  }, 1, 1, {0x0F, 0x00                        }, 2},
     {{0x0F                  }, 1, 2, {0xFB                              }, 1},
-    {{0x11, 0x00            }, 2, 2, {0xFB                              }, 1},
+    {{0x11                  }, 1, 2, {0xFB                              }, 1},
     {{0x11                  }, 1, 1, {0x11, 0x00                        }, 2},
     {{0x14                  }, 1, 4, {0xFB                              }, 1},
     {{0x14, 0x01            }, 2, 2, {0x14, 0x01, 0x00, 0x20            }, 4},
@@ -69,7 +72,9 @@ static const cmd_resp_t cmd_resp_list[] = {
     {{0x1A, 0x03            }, 2, 2, {0x1A, 0x03, 0x28                  }, 3},
     {{0x1A, 0x05, 0x00, 0x58}, 4, 4, {0x1A, 0x05, 0x00, 0x58, 0x00, 0x73}, 6},
     {{0x1A, 0x05            }, 2, 5, {0xFB                              }, 1},
-    {{0x26, 0x00            }, 2, 5, {0xFB                              }, 1},
+    {{0x1C, 0x00            }, 2, 2, {0x1C, 0x00, 0x00                  }, 3},
+    {{0x1C, 0x00            }, 2, 3, {0xFA                              }, 1},
+    {{0x26, 0x00            }, 2, 5, {0xFB                              }, 1},  // Answer PTT on or off with BAD.
     {{0x26, 0x00            }, 2, 2, {0x26, 0x00, 0x00, 0x00, 0x01      }, 5},
 };
 

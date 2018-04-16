@@ -345,9 +345,10 @@ int serial_send(const unsigned char *buf, int n)
     int nsent;
 
     tmstamp(ts_buf, sizeof(ts_buf));
-    printf("\n%s: send:", ts_buf);
+    printf("%s: send:", ts_buf);
     for(nsent = 0; nsent < n; nsent++)
         printf(" %02X", buf[nsent]);
+    putchar('\n');
 
     assert(f_fd);
     nsent = write(f_fd, buf, n);
@@ -375,9 +376,10 @@ static void *serial_listen_thread_loop(void *pfd)
 
             if(END_MESSAGE == buf[nread - 1]) {
                 tmstamp(ts_buf, sizeof(ts_buf));
-                printf("\n\n%s: recv:", ts_buf);
+                printf("\n%s: recv:", ts_buf);
                 for(n = 0; n < nread; n++)
                     printf(" %02X", buf[n]);
+                putchar('\n');
                 (void)process_cmd_from_controller(buf, nread);
             } else {
                 printf("serial_listen_thread_loop: no end message. Read %d bytes:", nread);
