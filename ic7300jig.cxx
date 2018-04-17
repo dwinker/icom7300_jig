@@ -72,7 +72,7 @@ void print_usage_exit(void)
 {
     puts("usage: ic7300jig [-d|--device[=]/dev/ttyUSBx] [-p|--p_drop_byte[=]PROB] [-s|--changing_scale]");
     puts("  default device is /dev/ttyUSB0.");
-    puts("  PROB is probability that a particular transmit byte will be dropped.");
+    puts("  PROB is probability that each particular transmit byte will be dropped.");
     puts("  PROB must be between 0.0 and 1.0 inclusive. 0.0 is the default.");
     exit(1);
 }

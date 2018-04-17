@@ -282,15 +282,16 @@ static void process_other_cmd_from_controller(const unsigned char *buf, int leng
         if(length == cr->cmd_len && 0 == memcmp(cr->cmd, buf, cr->compare_len)) {
             // Match
             n = 0;
-            if(random() > g_p_drop_byte) xbuf[n++] = PREAMBLE;
-            if(random() > g_p_drop_byte) xbuf[n++] = PREAMBLE;
-            if(random() > g_p_drop_byte) xbuf[n++] = CONT_ADDR;
-            if(random() > g_p_drop_byte) xbuf[n++] = XCVR_ADDR;
+
+            if(random() > g_p_drop_byte) xbuf[n++] = PREAMBLE;  else printf("D %d\n", n);
+            if(random() > g_p_drop_byte) xbuf[n++] = PREAMBLE;  else printf("D %d\n", n); 
+            if(random() > g_p_drop_byte) xbuf[n++] = CONT_ADDR; else printf("D %d\n", n); 
+            if(random() > g_p_drop_byte) xbuf[n++] = XCVR_ADDR; else printf("D %d\n", n); 
 
             for(j = 0; j < cr->resp_len; j++)
-                if(random() <= g_p_drop_byte) xbuf[n++] = cr->resp[j];
+                if(random() > g_p_drop_byte) xbuf[n++] = cr->resp[j]; else printf("D %d\n", n); 
 
-            if(random() <= g_p_drop_byte) xbuf[n++] = END_MESSAGE;
+            if(random() > g_p_drop_byte) xbuf[n++] = END_MESSAGE; else printf("D %d\n", n);
 
             (void)serial_send(xbuf, n);
 
