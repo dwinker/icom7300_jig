@@ -30,4 +30,20 @@ Want to test the following. Timeouts tested for correct values too.
 0x1C 0x01 0x?? is intentionally not answered so that by clicking "Tune" on
 flrig we can cause an OK timeout.
 
-"PTT" on or off is intentionally answered with BAD.
+"PTT" on or off is intentionally answered with 0xFA which is NG (No Good).
+
+The following optional ERROR INJECTION OPTIONS can be given to cause timeouts of various kinds on the other end:
+* -p|--p_drop_byte   [=]PROB probability that each particular byte will be dropped.
+* -m|--p_drop_message[=]PROB probability that message dropping will be triggered.
+* -n|--n_drop_message[=]N    number of messages that will be dropped once triggered by -m.
+* -h|--p_hesitate    [=]PROB probablilty that message hesitation will be triggered.
+* -t|--t_hesitate    [=]T    number of milleseconds to hesitate when triggered by -h.
+* -k|--n_hesitate    [=]N    number of messages that will be hesitated once triggered by -h.
+PROB must be between 0.0 and 1.0 inclusive. 0.0 is the default.
+T is an integer. 1000 is used if option is not given.
+N is an integer. 1 is used if option is not given.
+
+Communicate between this program and flrig on the same pc with this virtual
+serial port program:
+https://askubuntu.com/questions/588800/setup-virtual-serial-ports-linux-null-modem-emulator-using-tty0tty
+https://github.com/freemed/tty0tty

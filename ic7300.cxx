@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <unistd.h>
+#include "g_opt.h"
 #include "ic7300.h"
 #include "serial.h"
 #include "scope_waveform_data.h"
@@ -115,10 +117,6 @@ static const cmd_resp_t cmd_resp_list[] = {
     {{0x26, 0x00            }, 2, 5, {0xFB                              }, 1},  // VFO_SET
     {{0x26, 0x00            }, 2, 2, {0x26, 0x00, 0x00, 0x00, 0x01      }, 5},  // VFO_GET
 };
-
-// Probability that a particular byte will be dropped from ic7300jig.cxx.
-// This will be set to a number between -1 and RAND_MAX inclusive.
-long int g_p_drop_byte = 0;
 
 int process_cmd_from_controller(const unsigned char *buf, int nread)
 {
@@ -248,6 +246,8 @@ static void process_scope_data_subcmd_from_controller(const unsigned char *buf, 
 
 static void process_other_cmd_from_controller(const unsigned char *buf, int length)
 {
+    static int drop_message_triggered = 0;
+    static int hesitate_triggered = 0;
     const cmd_resp_t *cr;
     size_t i, j;
     unsigned char xbuf[10];
@@ -264,6 +264,28 @@ static void process_other_cmd_from_controller(const unsigned char *buf, int leng
         puts("process_other_cmd_from_controller: Missing END_MESSAGE.");
         return;
     }
+
+    // Arranged so we always get at least one good message between differnt
+    // instances of drop_message triggered.
+    if(drop_message_triggered) {
+        drop_message_triggered--;
+    } else if(random() <= g_opt_p_drop_message) {
+        drop_message_triggered = g_opt_n_drop_message;
+    }
+
+    if(drop_message_triggered)
+        return;
+
+    // Arranged so we always get at least one good message between differnt
+    // instances of hesitate triggered.
+    if(hesitate_triggered) {
+        hesitate_triggered--;
+    } else if(random() <= g_opt_p_hesitate) {
+        hesitate_triggered = g_opt_n_hesitate;
+    }
+
+    if(hesitate_triggered)
+        usleep((useconds_t)g_opt_t_hesitate * 1000ul);
 
     for(i = 0; i < sizeof(cmd_resp_list) / sizeof(cmd_resp_list[0]); i++) {
 
@@ -283,15 +305,15 @@ static void process_other_cmd_from_controller(const unsigned char *buf, int leng
             // Match
             n = 0;
 
-            if(random() > g_p_drop_byte) xbuf[n++] = PREAMBLE;  else printf("D %d\n", n);
-            if(random() > g_p_drop_byte) xbuf[n++] = PREAMBLE;  else printf("D %d\n", n); 
-            if(random() > g_p_drop_byte) xbuf[n++] = CONT_ADDR; else printf("D %d\n", n); 
-            if(random() > g_p_drop_byte) xbuf[n++] = XCVR_ADDR; else printf("D %d\n", n); 
+            if(random() > g_opt_p_drop_byte) xbuf[n++] = PREAMBLE;  else printf("D %d\n", n);
+            if(random() > g_opt_p_drop_byte) xbuf[n++] = PREAMBLE;  else printf("D %d\n", n); 
+            if(random() > g_opt_p_drop_byte) xbuf[n++] = CONT_ADDR; else printf("D %d\n", n); 
+            if(random() > g_opt_p_drop_byte) xbuf[n++] = XCVR_ADDR; else printf("D %d\n", n); 
 
             for(j = 0; j < cr->resp_len; j++)
-                if(random() > g_p_drop_byte) xbuf[n++] = cr->resp[j]; else printf("D %d\n", n); 
+                if(random() > g_opt_p_drop_byte) xbuf[n++] = cr->resp[j]; else printf("D %d\n", n); 
 
-            if(random() > g_p_drop_byte) xbuf[n++] = END_MESSAGE; else printf("D %d\n", n);
+            if(random() > g_opt_p_drop_byte) xbuf[n++] = END_MESSAGE; else printf("D %d\n", n);
 
             (void)serial_send(xbuf, n);
 
